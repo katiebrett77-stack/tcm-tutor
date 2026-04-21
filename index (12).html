@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>TCM Boards Tutor — Lauren</title>
+<!-- OneSignal Push Notifications — add your OneSignal App ID in the SETUP section below -->
+<!-- <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script> -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f5f2ed;font-family:Georgia,serif;-webkit-font-smoothing:antialiased}
+input,button,select,textarea{font-family:Georgia,serif}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:rgba(78,205,196,0.4);border-radius:2px}
+a{color:inherit;text-decoration:none}
+.typing span{display:inline-block;width:7px;height:7px;border-radius:50%;background:#4ecdc4;animation:bounce 1.2s infinite;margin:0 2px}
+.typing span:nth-child(2){animation-delay:.2s}
+.typing span:nth-child(3){animation-delay:.4s}
+@keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-8px)}}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.fadein{animation:fadein 0.3s ease}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useRef,useEffect,useCallback}=React;
+
+// ── CONSTANTS ──────────────────────────────────────────────────────────────
+const TC=t=>({
+  "Foundations":{main:"#2ab5ac",bg:"rgba(42,181,172,0.1)",border:"rgba(42,181,172,0.3)",emoji:"🌊"},
+  "Zang-Fu":{main:"#e85555",bg:"rgba(232,85,85,0.1)",border:"rgba(232,85,85,0.3)",emoji:"🫀"},
+  "Channels & Points":{main:"#8b6fd4",bg:"rgba(139,111,212,0.1)",border:"rgba(139,111,212,0.3)",emoji:"⚡"},
+}[t]||{main:"#c4a832",bg:"rgba(196,168,50,0.1)",border:"rgba(196,168,50,0.3)",emoji:"☯"});
+
+// ── STORAGE ────────────────────────────────────────────────────────────────
+const S={
+  get:(k,fb=null)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):fb}catch{return fb}},
+  set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}},
+};
+
+// ── QUESTIONS ──────────────────────────────────────────────────────────────
+const QS=[
+  {id:1,topic:"Foundations",subtopic:"Yin & Yang",type:"mc",question:"Which symptom BEST distinguishes Yin deficiency from Blood deficiency?",options:["A. Pale dull complexion","B. Night sweats and five palm heat","C. Blurred vision and dry eyes","D. Palpitations and poor memory"],correct:1,hint:"Think about whether there is a HEAT component — which pattern generates empty heat?",explanation:"Night sweats and five palm heat are empty heat signs — the hallmark of Yin deficiency. Blood deficiency has no heat component at all.",simple:"Think of Yin as the body's coolant. When it runs low the body overheats, especially at night. Blood deficiency is just running on empty — pale, tired, dry, but no overheating. Ask: is there heat? Yes = Yin def.",note:"BOARD POINT: Yin def = empty heat. Blood def = pale and dry, zero heat."},
+  {id:2,topic:"Foundations",subtopic:"Yin & Yang",type:"tf",question:"Nocturia (waking at night to urinate) is a Yin deficiency sign.",correct:false,hint:"What does Yang do to fluids? What happens when that function fails at night?",explanation:"Nocturia is Yang deficiency. Yang can't transform and hold fluids at night. Yin deficiency urine is scanty and dark — not enough fluid volume.",simple:"Yang is the heating system. When it fails, fluids pour out at night: clear, watery, lots. Yin deficiency is a drought — not enough fluid, so urine is small and dark.",note:"Nocturia = Yang def. Scanty dark urine = Yin def. Classic trick question."},
+  {id:3,topic:"Foundations",subtopic:"Yin & Yang",type:"fill",question:"The pulse in Yin deficiency is ___ and ___, while the tongue is red with ___ coat.",blanks:["thin","rapid","little"],hint:"Yin is cool moist substance — what does a pulse look like when substance is depleted AND empty heat builds?",explanation:"Thin reflects depleted Yin substance. Rapid reflects empty heat. Red tongue with little or no coat confirms fluids are used up.",simple:"Imagine draining a river. Less water = thinner flow (thin pulse). Heat builds from the drought = faster movement (rapid). Tongue is the riverbed — dries up red.",note:"BOARD POINT: Yin def pulse = thin AND rapid. Always paired."},
+  {id:4,topic:"Foundations",subtopic:"Yin & Yang",type:"match",question:"Match each sign to its pattern",pairs:[{left:"Night sweats",right:"Yin deficiency"},{left:"Nocturia",right:"Yang deficiency"},{left:"Pale complexion",right:"Blood deficiency"},{left:"Malar flush",right:"Yin deficiency"}],hint:"Sort by heat: hot signs = Yin def, cold/watery = Yang def, pale and dry = Blood def.",explanation:"Malar flush and night sweats = empty heat = Yin def. Nocturia = Yang failing fluids. Pale complexion = insufficient nourishment = Blood def.",simple:"Sort by heat. Hot signs = Yin def. Cold/watery = Yang def. Pale and undernourished = Blood def.",note:"BOARD POINT: Empty heat = Yin def. Cold signs = Yang def. Pale/nourishment = Blood def."},
+  {id:5,topic:"Foundations",subtopic:"Qi",type:"mc",question:"Which is NOT a primary function of Qi?",options:["A. Transforming food into Blood","B. Warming the body","C. Storing Jing (essence)","D. Protecting against pathogens"],correct:2,hint:"Which organ specifically stores Jing? The 5 Qi functions are about movement and maintenance, not storage.",explanation:"Storing Jing is a Kidney function. The five Qi functions are: transform, transport, hold, raise, warm and protect.",simple:"Qi is the body's electricity — powers transformation, movement, holding, raising, warmth. Does NOT store things. That's the Kidney's job.",note:"5 Qi functions: transform, transport, hold, raise, warm/protect. Storing Jing = Kidney only."},
+  {id:6,topic:"Foundations",subtopic:"Qi",type:"match",question:"Match each type of Qi to its role",pairs:[{left:"Wei Qi",right:"Exterior defence"},{left:"Ying Qi",right:"Nourishes organs inside vessels"},{left:"Zong Qi",right:"Chest — breathing and heart"},{left:"Yuan Qi",right:"Kidney — constitutional root"}],hint:"Think bodyguard, food delivery, gathering point, genetic foundation.",explanation:"Wei = defensive outside vessels. Ying = nutritive inside vessels. Zong = gathers in chest. Yuan = source from Kidney Jing.",simple:"Wei = bodyguard (outside). Ying = food delivery (inside blood vessels). Zong = chest helper. Yuan = your genetic inheritance from parents.",note:"Wei (defence) Ying (nutrition) Zong (chest) Yuan (Kidney/source)"},
+  {id:7,topic:"Foundations",subtopic:"Qi",type:"tf",question:"Qi stagnation typically presents with fixed, stabbing pain.",correct:false,hint:"Is Qi more like gas or a clot? Which one moves and which stays fixed?",explanation:"Fixed stabbing pain = Blood stasis. Qi stagnation pain is distending, moves around, relieved by movement or sighing.",simple:"Qi is like gas — stuck gas creates pressure that moves around. Blood is thicker, like a clot — stays in one spot, hurts sharply. Moving = Qi. Fixed stabbing = Blood.",note:"BOARD POINT: Qi stagnation = distending moving pain. Blood stasis = fixed stabbing pain."},
+  {id:8,topic:"Foundations",subtopic:"Blood",type:"mc",question:"Which organ primarily ensures the SMOOTH FLOW of Blood throughout the body?",options:["A. Heart","B. Spleen","C. Liver","D. Lung"],correct:2,hint:"The Heart pumps, the Spleen makes — which organ controls smooth traffic flow?",explanation:"Heart governs Blood. Spleen produces it. Liver ensures smooth flow. Liver Qi stagnation is the most common cause of Blood stasis.",simple:"Heart = pump. Spleen = factory. Liver = traffic controller. When Liver is stressed, traffic jams happen and Blood stagnates.",note:"Heart = governs. Spleen = produces. Liver = smooth flow + storage."},
+  {id:9,topic:"Foundations",subtopic:"Body Fluids",type:"fill",question:"The three organs most responsible for fluid metabolism are the ___, ___, and ___.",blanks:["Lung","Spleen","Kidney"],hint:"Think top (distributes downward), middle (transforms and sends up), bottom (the root).",explanation:"Lung distributes fluids down and outward. Spleen transforms and transports upward. Kidney is the root of fluid transformation.",simple:"Water treatment plant: Spleen collects and pumps up, Lung sprays out downward, Kidney filters and drains. San Jiao is the pipe system.",note:"BOARD POINT: Lung (distribute), Spleen (transform/transport), Kidney (root)."},
+  {id:10,topic:"Zang-Fu",subtopic:"Heart",type:"mc",question:"Palpitations, insomnia, red tongue TIP, rapid full pulse. Which Heart pattern?",options:["A. Heart Qi deficiency","B. Heart Yang deficiency","C. Heart Blood deficiency","D. Heart Fire blazing"],correct:3,hint:"Is this hot or cold, full or empty? Look at the tongue tip and pulse quality.",explanation:"Heart Fire: palpitations, agitation, insomnia, mouth sores, red face and tongue tip, rapid full pulse. All excess heat signs.",simple:"Heart Fire = engine running too hot. Mind can't settle, heat everywhere (red tongue tip, mouth sores), pulse racing. Heart Blood def = flat battery — no heat, just emptiness.",note:"BOARD POINT: Heart Fire = red tongue TIP, rapid FULL pulse, mouth sores."},
+  {id:11,topic:"Zang-Fu",subtopic:"Heart",type:"match",question:"Match each Heart pattern to its key differentiating sign",pairs:[{left:"Heart Qi deficiency",right:"Weak pulse, mild palpitations"},{left:"Heart Yang deficiency",right:"Cold limbs, purple lips, knotted pulse"},{left:"Heart Blood deficiency",right:"Pale complexion, thin pulse, insomnia"},{left:"Heart Fire blazing",right:"Red tongue tip, mouth sores, agitation"}],hint:"Ask two questions: is there heat or cold? Is it full or empty?",explanation:"Patterns build in severity. Qi def mildest. Yang def adds cold and purple. Fire adds excess heat. Blood def is empty with no heat.",simple:"Two axes: hot/cold? Full/empty? Fire = hot + full. Yang def = cold + deficient. Qi def = mild. Blood def = empty, dry, no heat.",note:"Build from base: Qi def is root. Add cold = Yang def. Add heat = Fire. No heat, pale = Blood def."},
+  {id:12,topic:"Zang-Fu",subtopic:"Spleen",type:"mc",question:"The Spleen's 'raising' function failure causes:",options:["A. Heart palpitations","B. Organ prolapse","C. Asthma","D. Kidney stones"],correct:1,hint:"The Spleen raises Qi upward. What happens when the upward force disappears?",explanation:"When Spleen Qi sinks it can't raise and hold organs. Results: uterine prolapse, rectal prolapse, chronic diarrhoea.",simple:"Spleen is the trampoline holding organs up. When it weakens things droop — uterus, rectum, stomach. Also that heavy bearing-down feeling.",note:"BOARD POINT: Spleen Qi sinking = prolapse + chronic diarrhoea + bearing-down sensation."},
+  {id:13,topic:"Zang-Fu",subtopic:"Spleen",type:"tf",question:"Dampness is the pathological product most associated with Spleen dysfunction.",correct:true,hint:"The Spleen transforms and transports fluids. What accumulates when it can't?",explanation:"The Spleen transforms and transports fluids. When it fails, fluids accumulate into Dampness or Phlegm. Spleen = root of Phlegm production.",simple:"Spleen is the drainage system. When it fails, fluids pool like a damp cellar — heavy limbs, foggy head, sticky stools. Sits long enough = Phlegm.",note:"BOARD POINT: Spleen = root of Phlegm. Damp signs always implicate the Spleen."},
+  {id:14,topic:"Zang-Fu",subtopic:"Liver",type:"mc",question:"Liver Qi stagnation most commonly arises from:",options:["A. Cold foods","B. Emotional constraint, unexpressed frustration","C. Overwork and poor sleep","D. Excessive sexual activity"],correct:1,hint:"Which emotion most directly impacts the Liver? What does the Liver hate?",explanation:"Emotional constraint is the primary cause. The Liver ensures smooth Qi flow and is strongly affected by suppressed emotions.",simple:"The Liver hates being controlled or constrained. Suppressed anger, frustration, resentment — backs up as Liver Qi stagnation. Classic: stressed, tight chest, sighing, irritable, PMS.",note:"Liver Qi stag = emotional cause. Signs: distending pain, irritability, sighing, irregular periods."},
+  {id:15,topic:"Zang-Fu",subtopic:"Liver",type:"match",question:"Match each Liver pattern to its key symptoms",pairs:[{left:"Liver Qi stagnation",right:"Distending pain, irritability, sighing"},{left:"Liver Blood deficiency",right:"Dry eyes, pale nails, scanty periods"},{left:"Liver Yang rising",right:"Headache, dizziness, red face, stiff neck"},{left:"Liver Fire blazing",right:"Severe headache, red eyes, bitter taste"}],hint:"Qi stag = stuck. Blood def = dry and empty. Yang rising = pressure going up. Fire = fully ignited.",explanation:"These patterns form a progression. Qi stag generates Fire over time. Blood def leads to Yang rising as Yin fails to anchor Yang.",simple:"Qi stag = stuck traffic. Yang rising = pressure builds upward. Fire = fully ignited. Blood def = the empty, dry side — no nourishment.",note:"BOARD POINT: Liver patterns progress. Stag → Fire. Blood def → Yang rising."},
+  {id:16,topic:"Zang-Fu",subtopic:"Kidney",type:"mc",question:"Which symptom is MOST specific to Kidney Yang deficiency (NOT in Kidney Yin def)?",options:["A. Tinnitus","B. Lower back soreness","C. Nocturia with clear copious urine","D. Poor memory"],correct:2,hint:"Focus on the URINE — colour, amount, and timing.",explanation:"Nocturia with clear copious urine = Yang def only. Yang can't transform fluids so they pour out watery at night. Yin def urine is scanty and dark.",simple:"Yang def = heating system failure. Fluids come out pale, watery, lots (at night). Yin def = drought. Dark and scanty.",note:"BOARD POINT: Nocturia + clear urine = Yang def. Scanty dark urine = Yin def."},
+  {id:17,topic:"Zang-Fu",subtopic:"Kidney",type:"tf",question:"The Kidney stores Pre-Heaven Essence (Jing) inherited from parents.",correct:true,hint:"Pre-Heaven = what you were born with. Which organ stores constitutional essence?",explanation:"Pre-Heaven Jing is inherited and stored in the Kidney. Post-Heaven Jing comes from food via the Spleen and is also stored in the Kidney.",simple:"Pre-Heaven Jing = genetic inheritance. Can't make more, only spend wisely. Post-Heaven Jing from food and rest you can top up. Both in the Kidney.",note:"BOARD POINT: Kidney stores both Jing types. Jing decline = premature aging, reproductive issues."},
+  {id:18,topic:"Channels & Points",subtopic:"Point Categories",type:"mc",question:"Which point type is used for chronic organ deficiency, located near the wrist or ankle?",options:["A. Yuan-Source points","B. Luo-Connecting points","C. Xi-Cleft points","D. Shu-Stream points"],correct:0,hint:"Chronic or acute? The name hints at its depth of connection to the organ.",explanation:"Yuan-Source points are near the wrist and ankle and directly treat the corresponding zang-fu organ, especially for chronic deficiency.",simple:"Yuan points = direct hotline to each organ. Near wrist or ankle. Use for chronic organ weakness. Xi-Cleft = emergencies. Luo = paired meridians.",note:"Yuan = chronic organ, near wrist/ankle. Xi-Cleft = acute. Luo = paired meridians."},
+  {id:19,topic:"Channels & Points",subtopic:"Point Categories",type:"match",question:"Match each point category to its primary use",pairs:[{left:"Xi-Cleft points",right:"Acute and painful conditions"},{left:"Front-Mu points",right:"Diagnose and treat organ (front)"},{left:"Back-Shu points",right:"Chronic organ disorders via back"},{left:"Luo-Connecting",right:"Treat paired meridian disorders"}],hint:"Front = diagnosis. Back = treatment. Xi-Cleft = emergency.",explanation:"Front-Mu and Back-Shu are paired. Mu reflects organ pathology as tenderness. Shu tonifies deficient organs. Xi-Cleft for acute emergencies.",simple:"Back-Shu and Front-Mu = organ sandwich. Press Mu at front — tender = organ problem. Treat with Shu at back. Xi-Cleft = sudden severe pain.",note:"BOARD POINT: Back-Shu + Front-Mu = organ sandwich. Xi-Cleft = acute."},
+  {id:20,topic:"Channels & Points",subtopic:"Five Shu Points",type:"mc",question:"The Five Shu points in correct order distal to proximal are:",options:["A. Jing-Spring-Stream-River-Sea","B. Well-Ying-Shu-Jing-He","C. Well-Spring-Stream-River-Sea","D. Jing-Ying-Shu-Jing-He"],correct:1,hint:"Water metaphor — tiny trickle at fingertip growing into a large body of water at the elbow.",explanation:"Well (Jing-well), Spring (Ying), Stream (Shu), River (Jing-river), Sea (He). From fingertip toward elbow.",simple:"Well at fingertip → Spring → Stream → River → Sea at elbow. Each gets bigger as water flows downstream.",note:"BOARD POINT: Well=mental. Spring=heat/fever. Stream=heaviness/Bi. River=respiratory. Sea=rebellious Qi."},
+];
+
+// ── QUICK FIRE DATA ────────────────────────────────────────────────────────
+const QF=[{q:"Nocturia =",a:"Yang deficiency",e:"🌊"},{q:"Scanty dark urine =",a:"Yin deficiency",e:"💧"},{q:"Which organ stores Jing?",a:"Kidney",e:"🫘"},{q:"Five palm heat = sign of",a:"Yin deficiency (empty heat)",e:"🖐"},{q:"Root of Phlegm production =",a:"Spleen",e:"💛"},{q:"Liver Qi stag main cause?",a:"Suppressed emotions",e:"😤"},{q:"Heart opens into?",a:"Tongue",e:"👅"},{q:"Defensive Qi type =",a:"Wei Qi",e:"🛡"},{q:"Thin rapid pulse =",a:"Yin deficiency",e:"💓"},{q:"Xi-Cleft points used for?",a:"Acute and painful conditions",e:"⚡"},{q:"Organ governing smooth Qi flow?",a:"Liver",e:"🌿"},{q:"Pre-Heaven Jing comes from?",a:"Parents (inherited)",e:"🧬"},{q:"Organ prolapse = Spleen Qi...",a:"Sinking",e:"⬇️"},{q:"Blood stasis = what pain type?",a:"Fixed, stabbing pain",e:"📍"},{q:"Kidney opens into?",a:"Ears",e:"🦻"},{q:"Yuan-Source points treat?",a:"Chronic organ deficiency",e:"🎯"},{q:"Malar flush = sign of?",a:"Yin deficiency (empty heat)",e:"🔴"},{q:"Zong Qi location?",a:"Chest",e:"💨"},];
+
+// ── HOMEWORK ───────────────────────────────────────────────────────────────
+const HW=[
+  {week:1,title:"Yin, Yang & Foundations",focus:"Lock in the fundamental language. Everything else builds on this.",color:"#2ab5ac",emoji:"🌊",days:[{day:"Tue",task:"Complete all Yin & Yang questions. Use hints freely — no shame at this stage.",type:"study"},{day:"Thu",task:"Watch: 'yin yang TCM theory simply' and 'empty heat yin deficiency TCM' on YouTube. One note per video.",type:"watch"},{day:"Sat",task:"Quick Fire mode — full round. Then write from memory: 5 Yin def signs and how it differs from Blood def.",type:"review"}],checkpoint:"Can you explain empty heat in your own words? Can you list 5 Yin def signs without looking?",boardAlert:"Yin def vs Blood def is tested every board exam. Empty heat is the most common wrong answer."},
+  {week:2,title:"Qi, Blood & Body Fluids",focus:"Understand their functions and what happens when they go wrong.",color:"#2ab5ac",emoji:"⚡",days:[{day:"Tue",task:"Complete all Qi, Blood, and Body Fluid questions. Use simpler explanation if you get stuck.",type:"study"},{day:"Thu",task:"Watch: '5 functions qi TCM' and 'qi stagnation vs blood stasis pain'. High-yield board content.",type:"watch"},{day:"Sat",task:"Quick Fire — full round. Then write: 5 Qi functions and the 4 Qi types with their roles.",type:"review"}],checkpoint:"Can you name the 5 Qi functions? Can you tell Qi stagnation pain from Blood stasis pain?",boardAlert:"Storing Jing is a Kidney function NOT a Qi function. Classic board trick."},
+  {week:3,title:"Zang-Fu — Heart & Spleen",focus:"Two of the most-tested organs. Nail the pattern differentiation.",color:"#e85555",emoji:"🫀",days:[{day:"Tue",task:"Complete all Heart and Spleen questions. Take your time on the matching ones.",type:"study"},{day:"Thu",task:"Watch: 'heart patterns TCM all four' and 'spleen qi sinking prolapse TCM'. Note the key differentiators.",type:"watch"},{day:"Sat",task:"Write from memory: 4 Heart patterns with key signs. What does Spleen Qi sinking cause?",type:"review"}],checkpoint:"Can you match Heart Fire vs Heart Blood def signs without looking? Can you explain Spleen Qi sinking?",boardAlert:"Heart Fire = red tongue TIP and rapid FULL pulse. Whole tongue red = different pattern entirely."},
+  {week:4,title:"Zang-Fu — Liver & Kidney",focus:"Most clinically relevant and most deeply tested. Both heavily weighted on boards.",color:"#e85555",emoji:"🌿",days:[{day:"Tue",task:"Complete all Liver and Kidney questions. Focus especially on the urine question.",type:"study"},{day:"Thu",task:"Watch: 'liver qi stagnation TCM 5 min' and 'kidney yin vs yang deficiency comparison'. Side-by-side videos best.",type:"watch"},{day:"Sat",task:"Write from memory: Liver pattern progression. Then all 3 Kidney patterns side by side.",type:"review"}],checkpoint:"Can you list Kidney Yin, Yang, and Jing def signs separately? What causes Liver Qi stagnation?",boardAlert:"Kidney Jing deficiency is a third pattern — no heat, no cold, just pure depletion. Most students forget it exists."},
+  {week:5,title:"Channels & Points",focus:"Point categories are the highest-yield short-answer content. Know them cold.",color:"#8b6fd4",emoji:"📍",days:[{day:"Tue",task:"Complete all Channels & Points questions. Read every explanation even on correct answers.",type:"study"},{day:"Thu",task:"Watch: 'acupuncture special point categories yuan luo xi shu mu' and 'five shu points water metaphor'.",type:"watch"},{day:"Sat",task:"Quick Fire — two full rounds. Then write: 5 point categories and primary use of each.",type:"review"}],checkpoint:"Can you name 5 point categories and their use without looking? Can you recall the Five Shu point order?",boardAlert:"Xi-Cleft = acute. Yuan-Source = chronic organ. Back-Shu + Front-Mu = paired organ sandwich. On every board."},
+  {week:6,title:"Full Revision & Pattern Differentiation",focus:"Pull everything together. Boards test differentiation, not just recall.",color:"#c4a832",emoji:"🧩",days:[{day:"Tue",task:"Full study session — All Topics, no filter, no hints. See where you stand.",type:"study"},{day:"Thu",task:"Progress tab: find 3 weakest questions. Redo them. Use simpler explanation if needed.",type:"review"},{day:"Sat",task:"Quick Fire twice through. Then write from memory: Yin def, Kidney Yin vs Yang, Liver patterns, Heart Fire vs Blood def.",type:"review"}],checkpoint:"Can you answer any question in this app without hints at 80%+ accuracy?",boardAlert:"Differentiation questions give a symptom cluster and ask which pattern. Ask: hot or cold? Full or empty? Which organ?"},
+];
+
+// ── RESOURCES ──────────────────────────────────────────────────────────────
+const RES=[
+  {topic:"Yin & Yang",color:"#2ab5ac",items:[{label:"Yin Yang basics",query:"TCM yin yang theory explained simply 5 minutes",why:"Core concept, fast. Under 10 min."},{label:"Yin vs Yang deficiency",query:"yin deficiency vs yang deficiency TCM symptoms comparison",why:"Direct board relevance. Look for a symptom comparison table."},{label:"Empty heat explained",query:"empty heat TCM yin deficiency clinical signs",why:"Concept people consistently miss."}]},
+  {topic:"Qi & Blood",color:"#2ab5ac",items:[{label:"5 functions of Qi",query:"five functions of qi TCM transform transport hold raise warm",why:"Punchy 5-min videos exist. Great for memorising the list."},{label:"Qi stagnation vs Blood stasis",query:"qi stagnation vs blood stasis TCM pain difference",why:"Exam question every time."},{label:"Types of Qi",query:"wei qi ying qi yuan qi zong qi types TCM explained",why:"Short comparison videos. Look for ones with a chart."}]},
+  {topic:"Heart & Spleen",color:"#e85555",items:[{label:"Heart patterns",query:"heart patterns TCM qi blood fire yang deficiency all four",why:"High yield. Find one that covers all 4 in under 15 min."},{label:"Spleen functions",query:"spleen TCM functions transform transport raise dampness",why:"Most-tested organ for pattern differentiation."},{label:"Dampness and Phlegm",query:"TCM dampness phlegm formation spleen short explanation",why:"Visual explanations of Damp turning into Phlegm are very helpful."}]},
+  {topic:"Liver & Kidney",color:"#e85555",items:[{label:"Liver Qi stagnation",query:"liver qi stagnation TCM signs causes treatment 5 min",why:"Most common clinical pattern. Short videos abound."},{label:"Liver pattern progression",query:"liver qi stagnation fire blood deficiency yang rising TCM progression",why:"Understanding how patterns progress is key."},{label:"Kidney Yin vs Yang",query:"kidney yin deficiency vs yang deficiency TCM symptoms chart",why:"Side-by-side visual locks it in."}]},
+  {topic:"Channels & Points",color:"#8b6fd4",items:[{label:"Special point categories",query:"acupuncture special point categories yuan luo xi shu mu",why:"One good overview covers most of the exam content."},{label:"Five Shu points",query:"five shu points acupuncture well spring stream river sea",why:"Water metaphor videos are the most memorable."},{label:"Back Shu and Front Mu",query:"back shu front mu points acupuncture organ treatment",why:"The organ sandwich concept."}]},
+  {topic:"Board Prep",color:"#c4a832",items:[{label:"8 Principles of TCM",query:"eight principles TCM diagnosis yin yang interior exterior",why:"Foundation for all pattern differentiation."},{label:"Tongue diagnosis",query:"tongue diagnosis TCM color coating cracks short guide",why:"Tongue signs are in almost every pattern question."},{label:"Pattern differentiation tips",query:"TCM pattern differentiation mnemonics memory tricks board exam",why:"Other people's memory tricks — often faster than making your own."}]},
+];
+
+// ── HELPERS ────────────────────────────────────────────────────────────────
+const shuffle=a=>[...a].sort(()=>Math.random()-0.5);
+const daysSince=d=>d?Math.floor((Date.now()-d)/86400000):999;
+
+// ── QUESTION COMPONENTS ────────────────────────────────────────────────────
+function MCQ({q,onAnswer,tc}){
+  const [sel,setSel]=useState(null);const [rev,setRev]=useState(false);
+  const pick=i=>{if(rev)return;setSel(i);setRev(true);setTimeout(()=>onAnswer(i===q.correct,q.options[i]),600)};
+  return(<div style={{background:tc.bg,border:`1px solid ${tc.border}`,borderRadius:14,padding:16,marginTop:10,boxShadow:"0 2px 8px rgba(0,0,0,0.06)"}}>
+    <div style={{fontSize:"0.63em",letterSpacing:"0.15em",textTransform:"uppercase",color:tc.main,marginBottom:9,fontWeight:700}}>MULTIPLE CHOICE</div>
+    <div style={{fontSize:"0.9em",color:"#1a1a2e",lineHeight:1.6,marginBottom:13,fontWeight:600}}>{q.question}</div>
+    <div style={{display:"flex",flexDirection:"column",gap:7}}>{q.options.map((opt,i)=>{
+      let bg="#fff",bdr="1px solid rgba(0,0,0,0.1)",clr="#2a2a3a";
+      if(rev){if(i===q.correct){bg="rgba(42,181,172,0.15)";bdr=`1px solid #2ab5ac`;clr="#1a7a75";}else if(i===sel){bg="rgba(232,85,85,0.12)";bdr="1px solid #e85555";clr="#c43333";}}
+      return<button key={i} onClick={()=>pick(i)} style={{background:bg,border:bdr,borderRadius:10,padding:"10px 14px",color:clr,cursor:rev?"default":"pointer",textAlign:"left",fontSize:"0.86em",lineHeight:1.5,transition:"all 0.2s",display:"flex",justifyContent:"space-between",alignItems:"center",fontFamily:"Georgia,serif"}}><span>{opt}</span>{rev&&i===q.correct&&<span style={{color:"#2ab5ac",fontWeight:700}}>✓</span>}{rev&&i===sel&&i!==q.correct&&<span style={{color:"#e85555",fontWeight:700}}>✗</span>}</button>;
+    })}</div>
+  </div>);
+}
+function TFQ({q,onAnswer,tc}){
+  const [sel,setSel]=useState(null);const [rev,setRev]=useState(false);
+  const pick=v=>{if(rev)return;setSel(v);setRev(true);setTimeout(()=>onAnswer(v===q.correct,v?"True":"False"),600)};
+  return(<div style={{background:tc.bg,border:`1px solid ${tc.border}`,borderRadius:14,padding:16,marginTop:10,boxShadow:"0 2px 8px rgba(0,0,0,0.06)"}}>
+    <div style={{fontSize:"0.63em",letterSpacing:"0.15em",textTransform:"uppercase",color:tc.main,marginBottom:9,fontWeight:700}}>TRUE / FALSE</div>
+    <div style={{fontSize:"0.9em",color:"#1a1a2e",lineHeight:1.6,marginBottom:13,fontWeight:600}}>{q.question}</div>
+    <div style={{display:"flex",gap:10}}>{[true,false].map(v=>{
+      let bg="#fff",bdr="1px solid rgba(0,0,0,0.1)",clr="#2a2a3a";
+      if(rev){if(v===q.correct){bg="rgba(42,181,172,0.15)";bdr="1px solid #2ab5ac";clr="#1a7a75";}else if(v===sel){bg="rgba(232,85,85,0.12)";bdr="1px solid #e85555";clr="#c43333";}}
+      return<button key={String(v)} onClick={()=>pick(v)} style={{flex:1,background:bg,border:bdr,borderRadius:10,padding:13,color:clr,cursor:rev?"default":"pointer",fontSize:"0.95em",fontWeight:700,transition:"all 0.2s",fontFamily:"Georgia,serif"}}>{v?"TRUE ✓":"FALSE ✗"}</button>;
+    })}</div>
+  </div>);
+}
+function FillQ({q,onAnswer,tc}){
+  const [vals,setVals]=useState(q.blanks.map(()=>""));const [sub,setSub]=useState(false);const [res,setRes]=useState([]);
+  const check=()=>{if(sub||vals.some(v=>!v.trim()))return;const r=q.blanks.map((b,i)=>vals[i].trim().toLowerCase()===b.toLowerCase());setRes(r);setSub(true);setTimeout(()=>onAnswer(r.every(Boolean),vals.join(", ")),700)};
+  let bi=0;const parts=q.question.replace(/___/g,()=>`__B${bi++}__`).split(/(__B\d+__)/g);bi=0;
+  return(<div style={{background:tc.bg,border:`1px solid ${tc.border}`,borderRadius:14,padding:16,marginTop:10,boxShadow:"0 2px 8px rgba(0,0,0,0.06)"}}>
+    <div style={{fontSize:"0.63em",letterSpacing:"0.15em",textTransform:"uppercase",color:tc.main,marginBottom:9,fontWeight:700}}>FILL IN THE BLANK</div>
+    <div style={{fontSize:"0.9em",lineHeight:2.4,color:"#1a1a2e",marginBottom:14}}>{parts.map((p,i)=>{if(p.startsWith("__B")){const idx=bi++;const ok=sub?res[idx]:null;return<input key={i} value={vals[idx]} onChange={e=>{if(!sub){const n=[...vals];n[idx]=e.target.value;setVals(n)}}} onKeyDown={e=>e.key==="Enter"&&check()} placeholder="..." style={{width:100,background:"transparent",border:"none",borderBottom:sub?(ok?`2px solid #2ab5ac`:`2px solid #e85555`):`2px solid ${tc.main}`,color:sub?(ok?"#1a7a75":"#c43333"):tc.main,fontSize:"0.92em",padding:"0 4px",outline:"none",textAlign:"center",margin:"0 3px",fontFamily:"Georgia,serif"}}/> }return<span key={i}>{p}</span>})}</div>
+    {sub&&<div style={{fontSize:"0.78em",color:"#7a7570",marginBottom:10}}>Answers: {q.blanks.join(", ")}</div>}
+    {!sub&&<button onClick={check} disabled={vals.some(v=>!v.trim())} style={{background:tc.bg,border:`1px solid ${tc.border}`,borderRadius:8,padding:"7px 18px",color:tc.main,fontSize:"0.82em",cursor:"pointer",fontFamily:"Georgia,serif"}}>Check →</button>}
+  </div>);
+}
+function MatchQ({q,onAnswer,tc}){
+  const rights=useRef(shuffle(q.pairs.map(p=>p.right))).current;
+  const [matches,setMatches]=useState({});const [active,setActive]=useState(null);const [rev,setRev]=useState(false);
+  const cmap=Object.fromEntries(q.pairs.map(p=>[p.left,p.right]));
+  const rmap=Object.fromEntries(Object.entries(matches).map(([l,r])=>[r,l]));
+  const pickR=r=>{if(!rev&&active){const nm={...matches,[active]:r};setMatches(nm);setActive(null);if(Object.keys(nm).length===q.pairs.length){setRev(true);const ok=q.pairs.every(p=>nm[p.left]===p.right);setTimeout(()=>onAnswer(ok,"matching exercise"),700)}}};
+  const allOk=rev&&q.pairs.every(p=>matches[p.left]===p.right);
+  return(<div style={{background:tc.bg,border:`1px solid ${tc.border}`,borderRadius:14,padding:16,marginTop:10,boxShadow:"0 2px 8px rgba(0,0,0,0.06)"}}>
+    <div style={{fontSize:"0.63em",letterSpacing:"0.15em",textTransform:"uppercase",color:tc.main,marginBottom:9,fontWeight:700}}>MATCHING</div>
+    <div style={{fontSize:"0.9em",color:"#1a1a2e",lineHeight:1.6,marginBottom:5,fontWeight:600}}>{q.question}</div>
+    {!rev&&<div style={{fontSize:"0.72em",color:"#8a8580",marginBottom:10}}>Tap left item first, then tap its match on the right</div>}
+    <div style={{display:"flex",gap:8}}>
+      <div style={{flex:1,display:"flex",flexDirection:"column",gap:6}}>{q.pairs.map(({left:l})=>{
+        const isA=active===l,isM=!!matches[l],ok=rev&&cmap[l]===matches[l],bad=rev&&isM&&!ok;
+        let bg="#f8f6f2",bdr="1px solid rgba(0,0,0,0.1)",clr="#2a2a3a";
+        if(isA){bg=tc.bg;bdr=`1px solid ${tc.main}`;clr=tc.main}
+        if(ok){bg="rgba(42,181,172,0.12)";bdr="1px solid #2ab5ac";clr="#1a7a75"}
+        if(bad){bg="rgba(232,85,85,0.1)";bdr="1px solid #e85555";clr="#c43333"}
+        return<button key={l} onClick={()=>!rev&&setActive(l)} style={{background:bg,border:bdr,borderRadius:9,padding:"8px 11px",color:clr,cursor:rev?"default":"pointer",fontSize:"0.78em",textAlign:"left",transition:"all 0.2s",minHeight:40,lineHeight:1.4,fontFamily:"Georgia,serif"}}>
+          {l}{isM&&<div style={{fontSize:"0.72em",color:ok?"#1a7a75":bad?"#c43333":"#8a8580",marginTop:3}}>→ {matches[l]} {ok?"✓":bad?`✗ (was: ${cmap[l]})`:""}</div>}
+        </button>;
+      })}</div>
+      <div style={{flex:1,display:"flex",flexDirection:"column",gap:6}}>{rights.map(r=>{
+        const ml=rmap[r],used=!!ml,ok=rev&&used&&cmap[ml]===r,bad=rev&&used&&!ok;
+        let bg=tc.bg,bdr=`1px solid ${tc.border}`,clr=tc.main;
+        if(used&&!rev){bg="#f0ede8";bdr="1px solid rgba(0,0,0,0.08)";clr="#aaa"}
+        if(ok){bg="rgba(42,181,172,0.12)";bdr="1px solid #2ab5ac";clr="#1a7a75"}
+        if(bad){bg="rgba(232,85,85,0.1)";bdr="1px solid #e85555";clr="#c43333"}
+        return<button key={r} onClick={()=>pickR(r)} style={{background:bg,border:bdr,borderRadius:9,padding:"8px 11px",color:clr,cursor:active&&!used&&!rev?"pointer":"default",fontSize:"0.78em",textAlign:"left",transition:"all 0.2s",minHeight:40,lineHeight:1.4,fontFamily:"Georgia,serif"}}>
+          {r} {rev&&ok&&"✓"}{rev&&bad&&"✗"}
+        </button>;
+      })}</div>
+    </div>
+    {active&&<div style={{fontSize:"0.72em",color:tc.main,marginTop:7,textAlign:"center",fontWeight:600}}>Now tap the match on the right →</div>}
+    {rev&&<div style={{fontSize:"0.78em",marginTop:10,textAlign:"center",color:allOk?"#1a7a75":"#c43333",fontWeight:700}}>{allOk?"✓ All correct!":"✗ Some wrong — corrections shown above"}</div>}
+  </div>);
+}
+function QR({q,onAnswer}){const tc=TC(q.topic);if(q.type==="mc")return<MCQ q={q} onAnswer={onAnswer} tc={tc}/>;if(q.type==="tf")return<TFQ q={q} onAnswer={onAnswer} tc={tc}/>;if(q.type==="fill")return<FillQ q={q} onAnswer={onAnswer} tc={tc}/>;if(q.type==="match")return<MatchQ q={q} onAnswer={onAnswer} tc={tc}/>;return null}
+
+// ── QUICK FIRE ─────────────────────────────────────────────────────────────
+function QuickFire({onExit}){
+  const qs=useRef(shuffle(QF)).current;const [i,setI]=useState(0);const [rev,setRev]=useState(false);const [sc,setSc]=useState({y:0,n:0});
+  const q=qs[i];const done=i>=qs.length;
+  return(<div style={{flex:1,display:"flex",flexDirection:"column",padding:16,background:"#f5f2ed"}}>
+    {!done?(<>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:20}}>
+        <div style={{fontSize:"0.75em",color:"#8a8580"}}>{i+1}/{qs.length}</div>
+        <div style={{display:"flex",gap:14}}>
+          <span style={{color:"#2ab5ac",fontSize:"0.82em",fontWeight:700}}>✓ {sc.y}</span>
+          <span style={{color:"#e85555",fontSize:"0.82em",fontWeight:700}}>✗ {sc.n}</span>
+        </div>
+      </div>
+      <div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",textAlign:"center"}}>
+        <div style={{fontSize:"2.8em",marginBottom:14}}>{q.e}</div>
+        <div style={{fontSize:"1.1em",fontWeight:700,color:"#1a1a2e",lineHeight:1.5,marginBottom:24,maxWidth:300}}>{q.q}</div>
+        {!rev?<button onClick={()=>setRev(true)} style={{padding:"12px 32px",borderRadius:12,background:"rgba(42,181,172,0.12)",border:"1px solid rgba(42,181,172,0.35)",color:"#2ab5ac",fontSize:"0.95em",cursor:"pointer",fontFamily:"Georgia,serif"}}>Show answer</button>:(
+          <><div style={{padding:"13px 22px",borderRadius:12,background:"rgba(42,181,172,0.1)",border:"1px solid rgba(42,181,172,0.3)",color:"#1a7a75",fontSize:"1em",fontWeight:700,marginBottom:20,maxWidth:300}}>{q.a}</div>
+          <div style={{display:"flex",gap:12}}>
+            <button onClick={()=>{setSc(s=>({...s,y:s.y+1}));setI(p=>p+1);setRev(false)}} style={{flex:1,padding:11,borderRadius:10,background:"rgba(42,181,172,0.12)",border:"1px solid rgba(42,181,172,0.3)",color:"#1a7a75",fontSize:"0.9em",cursor:"pointer",fontFamily:"Georgia,serif"}}>✓ Got it</button>
+            <button onClick={()=>{setSc(s=>({...s,n:s.n+1}));setI(p=>p+1);setRev(false)}} style={{flex:1,padding:11,borderRadius:10,background:"rgba(232,85,85,0.1)",border:"1px solid rgba(232,85,85,0.25)",color:"#c43333",fontSize:"0.9em",cursor:"pointer",fontFamily:"Georgia,serif"}}>✗ Missed</button>
+          </div></>)}
+      </div>
+    </>):(<div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",textAlign:"center"}}>
+      <div style={{fontSize:"2.5em",marginBottom:12}}>🎯</div>
+      <div style={{fontSize:"1.1em",fontWeight:700,color:"#2ab5ac",marginBottom:6}}>Done!</div>
+      <div style={{fontSize:"0.9em",color:"#7a7570",marginBottom:20}}>{Math.round(sc.y/qs.length*100)}% · ✓{sc.y} · ✗{sc.n}</div>
+      <button onClick={onExit} style={{padding:"10px 24px",borderRadius:10,background:"rgba(42,181,172,0.12)",border:"1px solid rgba(42,181,172,0.3)",color:"#2ab5ac",fontSize:"0.88em",cursor:"pointer",fontFamily:"Georgia,serif"}}>Back</button>
+    </div>)}
+  </div>);
+}
+
+// ── AI TUTOR CHAT ──────────────────────────────────────────────────────────
+function AITutor({apiKey,name,qStats,reviewIds,currentWeek}){
+  const [msgs,setMsgs]=useState([{role:"assistant",content:`Hi ${name||"there"}! 👋 I'm your TCM tutor. Ask me anything — concepts you're struggling with, questions you want explained differently, or just tell me where you feel stuck. I know your progress and I'll focus on what you need most.`}]);
+  const [input,setInput]=useState("");const [loading,setLoading]=useState(false);const [err,setErr]=useState("");
+  const bottomRef=useRef(null);
+  useEffect(()=>{bottomRef.current?.scrollIntoView({behavior:"smooth"})},[msgs,loading]);
+
+  const weakTopics=Object.entries(qStats).filter(([,s])=>s.wrong>s.correct).map(([id])=>QS.find(q=>q.id==id)?.subtopic).filter(Boolean);
+  const sysPrompt=`You are a sharp, encouraging TCM tutor helping ${name||"a student"} prepare for Canadian CTCMA board exams. She has been out of practice for 2 years and is rebuilding her knowledge.
+
+Her current progress:
+- Week ${currentWeek} of 6-week study plan
+- Questions answered: ${Object.keys(qStats).length}/${QS.length}
+- Weak areas: ${weakTopics.length>0?weakTopics.join(", "):"still collecting data"}
+- Questions in review queue: ${reviewIds.length}
+- Days since last study session: ${daysSince(S.get("tcm:lastVisit"))}
+
+Your style:
+- Warm but direct. No fluff.
+- Use plain English analogies for complex concepts.
+- When she gets something wrong, explain WHY it's wrong before moving on.
+- Proactively flag board exam relevance.
+- Keep responses under 200 words unless she asks to go deeper.
+- End each response with one question to check her understanding OR suggest what to study next.
+- If she hasn't studied recently, mention it kindly and help her get back on track.
+- BOARD POINT: prefix any high-yield exam facts.`;
+
+  const send=async()=>{
+    if(!input.trim()||loading)return;
+    const userMsg={role:"user",content:input.trim()};
+    const newMsgs=[...msgs,userMsg];
+    setMsgs(newMsgs);setInput("");setLoading(true);setErr("");
+    try{
+      const res=await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+        body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:600,system:sysPrompt,messages:newMsgs.map(m=>({role:m.role,content:m.content}))})
+      });
+      if(!res.ok){const t=await res.text();throw new Error(`API error ${res.status}: ${t.slice(0,200)}`)}
+      const data=await res.json();
+      if(data.error)throw new Error(data.error.message);
+      const reply=data.content?.[0]?.text||"Sorry, I couldn't get a response.";
+      setMsgs(prev=>[...prev,{role:"assistant",content:reply}]);
+    }catch(e){setErr(e.message)}
+    setLoading(false);
+  };
+
+  const formatMsg=txt=>txt.split(/(BOARD POINT:[^\n]+)/g).map((p,i)=>
+    p.startsWith("BOARD POINT:")?<span key={i} style={{display:"inline-block",background:"rgba(196,168,50,0.12)",border:"1px solid rgba(196,168,50,0.3)",borderRadius:4,padding:"2px 7px",margin:"2px 0",color:"#8a6a00",fontWeight:600,fontSize:"0.9em"}}>{p}</span>:<span key={i}>{p}</span>
+  );
+
+  return(<div style={{flex:1,display:"flex",flexDirection:"column",height:"100%"}}>
+    <div style={{flex:1,overflowY:"auto",padding:"14px 16px",display:"flex",flexDirection:"column",gap:12}}>
+      {msgs.map((m,i)=>(
+        <div key={i} className="fadein" style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start",gap:8,alignItems:"flex-start"}}>
+          {m.role==="assistant"&&<div style={{width:30,height:30,borderRadius:"50%",background:"linear-gradient(135deg,#2ab5ac,#8b6fd4)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0,marginTop:2}}>☯</div>}
+          <div style={{maxWidth:"80%",padding:"10px 14px",borderRadius:m.role==="user"?"16px 16px 4px 16px":"4px 16px 16px 16px",background:m.role==="user"?"rgba(42,181,172,0.1)":"#fff",border:m.role==="user"?"1px solid rgba(42,181,172,0.25)":"1px solid rgba(0,0,0,0.08)",fontSize:"0.88em",color:"#1a1a2e",lineHeight:1.7,boxShadow:"0 1px 4px rgba(0,0,0,0.05)",whiteSpace:"pre-wrap"}}>
+            {m.role==="assistant"?formatMsg(m.content):m.content}
+          </div>
+        </div>
+      ))}
+      {loading&&<div style={{display:"flex",gap:8,alignItems:"center"}}>
+        <div style={{width:30,height:30,borderRadius:"50%",background:"linear-gradient(135deg,#2ab5ac,#8b6fd4)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>☯</div>
+        <div className="typing" style={{background:"#fff",border:"1px solid rgba(0,0,0,0.08)",borderRadius:"4px 16px 16px 16px",padding:"12px 16px"}}><span/><span/><span/></div>
+      </div>}
+      {err&&<div style={{padding:"8px 12px",borderRadius:10,background:"rgba(232,85,85,0.08)",border:"1px solid rgba(232,85,85,0.25)",fontSize:"0.8em",color:"#c43333"}}>{err}</div>}
+      <div ref={bottomRef}/>
+    </div>
+    <div style={{padding:"10px 14px 14px",borderTop:"1px solid rgba(0,0,0,0.08)",background:"#f5f2ed",display:"flex",gap:8,alignItems:"flex-end"}}>
+      <textarea value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()}}} placeholder="Ask anything — concepts, patterns, what you're confused about..." rows={2} style={{flex:1,background:"#fff",border:"1px solid rgba(0,0,0,0.12)",borderRadius:10,padding:"9px 13px",color:"#1a1a2e",fontSize:"0.86em",outline:"none",resize:"none",lineHeight:1.5,fontFamily:"Georgia,serif"}}/>
+      <button onClick={send} disabled={loading||!input.trim()} style={{width:40,height:40,borderRadius:"50%",background:input.trim()?"linear-gradient(135deg,#2ab5ac,#8b6fd4)":"rgba(0,0,0,0.08)",border:"none",cursor:input.trim()?"pointer":"default",fontSize:16,color:"#fff",transition:"all 0.2s",flexShrink:0}}>→</button>
+    </div>
+  </div>);
+}
+
+// ── SETUP SCREEN ───────────────────────────────────────────────────────────
+function Setup({onComplete}){
+  const [key,setKey]=useState("");const [name,setName]=useState("Lauren");const [err,setErr]=useState("");const [testing,setTesting]=useState(false);
+  const test=async()=>{
+    if(!key.trim()){setErr("Please enter your API key.");return}
+    setTesting(true);setErr("");
+    try{
+      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":key.trim(),"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:20,messages:[{role:"user",content:"Say: ready"}]})});
+      const data=await res.json();
+      if(data.error)throw new Error(data.error.message);
+      onComplete(key.trim(),name.trim()||"Lauren");
+    }catch(e){setErr("Could not connect: "+e.message)}
+    setTesting(false);
+  };
+  return(<div style={{minHeight:"100vh",background:"#f5f2ed",display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+    <div style={{background:"#fff",borderRadius:20,padding:32,maxWidth:440,width:"100%",boxShadow:"0 4px 24px rgba(0,0,0,0.1)"}}>
+      <div style={{textAlign:"center",marginBottom:28}}>
+        <div style={{width:60,height:60,borderRadius:"50%",background:"linear-gradient(135deg,#2ab5ac,#8b6fd4)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,margin:"0 auto 14px"}}>☯</div>
+        <div style={{fontSize:"1.4em",fontWeight:700,background:"linear-gradient(90deg,#2ab5ac,#8b6fd4)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>TCM Boards Tutor</div>
+        <div style={{fontSize:"0.8em",color:"#8a8580",marginTop:4}}>First-time setup — takes 30 seconds</div>
+      </div>
+      <div style={{marginBottom:16}}>
+        <label style={{fontSize:"0.78em",fontWeight:700,color:"#5a5550",textTransform:"uppercase",letterSpacing:"0.1em",display:"block",marginBottom:6}}>Student name</label>
+        <input value={name} onChange={e=>setName(e.target.value)} style={{width:"100%",padding:"10px 14px",borderRadius:10,border:"1px solid rgba(0,0,0,0.15)",fontSize:"0.92em",outline:"none",color:"#1a1a2e",fontFamily:"Georgia,serif"}}/>
+      </div>
+      <div style={{marginBottom:8}}>
+        <label style={{fontSize:"0.78em",fontWeight:700,color:"#5a5550",textTransform:"uppercase",letterSpacing:"0.1em",display:"block",marginBottom:6}}>Claude API Key</label>
+        <input type="password" value={key} onChange={e=>setKey(e.target.value)} placeholder="sk-ant-..." style={{width:"100%",padding:"10px 14px",borderRadius:10,border:"1px solid rgba(0,0,0,0.15)",fontSize:"0.92em",outline:"none",color:"#1a1a2e",fontFamily:"Georgia,serif"}}/>
+        <div style={{fontSize:"0.73em",color:"#9a9590",marginTop:6}}>Your key is stored only in this browser. Never shared. Get yours at console.anthropic.com</div>
+      </div>
+      {err&&<div style={{padding:"8px 12px",borderRadius:8,background:"rgba(232,85,85,0.08)",border:"1px solid rgba(232,85,85,0.2)",fontSize:"0.8em",color:"#c43333",marginBottom:12}}>{err}</div>}
+      <button onClick={test} disabled={testing||!key.trim()} style={{width:"100%",padding:"13px",borderRadius:12,background:"linear-gradient(135deg,#2ab5ac,#8b6fd4)",border:"none",color:"#fff",fontSize:"0.95em",fontWeight:700,cursor:key.trim()?"pointer":"default",marginTop:8,fontFamily:"Georgia,serif"}}>
+        {testing?"Testing connection...":"Start studying →"}
+      </button>
+    </div>
+  </div>);
+}
+
+// ── MAIN APP ───────────────────────────────────────────────────────────────
+export default function App(){
+  const [setup,setSetup]=useState(!S.get("tcm:apikey"));
+  const [apiKey,setApiKey]=useState(S.get("tcm:apikey",""));
+  const [studentName,setStudentName]=useState(S.get("tcm:name","Lauren"));
+  const [tab,setTab]=useState("today");
+  const [xp,setXp]=useState(S.get("tcm:xp",0));
+  const [streak,setStreak]=useState(S.get("tcm:streak",0));
+  const [qStats,setQStats]=useState(S.get("tcm:qstats",{}));
+  const [reviewIds,setReviewIds]=useState(S.get("tcm:review",[]));
+  const [answeredIds,setAnsweredIds]=useState(new Set(S.get("tcm:answered",[])));
+  const [customNotes,setCustomNotes]=useState(S.get("tcm:notes",[]));
+  const [currentWeek,setCurrentWeek]=useState(S.get("tcm:week",1));
+  const [completedTasks,setCompletedTasks]=useState(S.get("tcm:tasks",{}));
+  const [filter,setFilter]=useState("All");
+  const [mode,setMode]=useState("queue");
+  const [showExp,setShowExp]=useState(null);
+  const [showSimple,setShowSimple]=useState(false);
+  const [showHint,setShowHint]=useState(false);
+  const [quickFire,setQuickFire]=useState(false);
+  const [noteText,setNoteText]=useState("");
+  const [noteTopic,setNoteTopic]=useState("General");
+  const [resOpen,setResOpen]=useState(null);
+  const bottomRef=useRef(null);
+
+  // Persist all state
+  useEffect(()=>{S.set("tcm:xp",xp)},[xp]);
+  useEffect(()=>{S.set("tcm:streak",streak)},[streak]);
+  useEffect(()=>{S.set("tcm:qstats",qStats)},[qStats]);
+  useEffect(()=>{S.set("tcm:review",reviewIds)},[reviewIds]);
+  useEffect(()=>{S.set("tcm:answered",[...answeredIds])},[answeredIds]);
+  useEffect(()=>{S.set("tcm:notes",customNotes)},[customNotes]);
+  useEffect(()=>{S.set("tcm:week",currentWeek)},[currentWeek]);
+  useEffect(()=>{S.set("tcm:tasks",completedTasks)},[completedTasks]);
+
+  // Track last visit
+  useEffect(()=>{S.set("tcm:lastVisit",Date.now())},[]);
+
+  useEffect(()=>{bottomRef.current?.scrollIntoView({behavior:"smooth"})},[showExp,showSimple]);
+
+  const filteredQs=QS.filter(q=>filter==="All"||q.topic===filter);
+  const reviewQs=QS.filter(q=>reviewIds.includes(q.id));
+  const queue=mode==="review"?reviewQs:filteredQs.filter(q=>!answeredIds.has(q.id));
+  const currentQ=queue[0]||null;
+  const progress=Math.round((answeredIds.size/QS.length)*100);
+  const lastSeen=daysSince(S.get("tcm:lastVisit"));
+
+  // Weakness analysis
+  const totalAttempts=Object.values(qStats).reduce((s,v)=>s+v.attempts,0);
+  const totalCorrect=Object.values(qStats).reduce((s,v)=>s+v.correct,0);
+  const accuracy=totalAttempts>0?Math.round(totalCorrect/totalAttempts*100):0;
+  const weakQs=QS.filter(q=>qStats[q.id]&&qStats[q.id].wrong>qStats[q.id].correct).sort((a,b)=>qStats[b.id].wrong-qStats[a.id].wrong);
+  const topicAccuracy={};
+  QS.forEach(q=>{const s=qStats[q.id];if(!s)return;if(!topicAccuracy[q.topic])topicAccuracy[q.topic]={c:0,t:0};topicAccuracy[q.topic].c+=s.correct;topicAccuracy[q.topic].t+=s.attempts;});
+  const weakestTopic=Object.entries(topicAccuracy).sort((a,b)=>(a[1].c/a[1].t)-(b[1].c/b[1].t))[0];
+
+  const handleAnswer=(correct,chosen)=>{
+    const q=currentQ;if(!q)return;
+    setAnsweredIds(prev=>new Set([...prev,q.id]));
+    const prev=qStats[q.id]||{correct:0,wrong:0,attempts:0};
+    setQStats(p=>({...p,[q.id]:{correct:prev.correct+(correct?1:0),wrong:prev.wrong+(correct?0:1),attempts:prev.attempts+1,lastSeen:Date.now()}}));
+    if(correct){setXp(p=>p+20);setStreak(p=>p+1);setReviewIds(p=>p.filter(id=>id!==q.id))}
+    else{setStreak(0);if(!reviewIds.includes(q.id))setReviewIds(p=>[...p,q.id])}
+    setShowExp({q,correct,chosen});setShowSimple(false);setShowHint(false);
+  };
+
+  const next=()=>{setShowExp(null);setShowSimple(false);setShowHint(false)};
+
+  const addNote=()=>{
+    if(!noteText.trim())return;
+    setCustomNotes(p=>[...p,{id:Date.now(),text:noteText.trim(),topic:noteTopic,date:new Date().toLocaleDateString()}]);
+    setNoteText("");
+  };
+
+  const hwData=HW[currentWeek-1]||HW[0];
+  const taskKey=d=>`w${currentWeek}_${d}`;
+  const toggleTask=d=>setCompletedTasks(p=>({...p,[taskKey(d)]:!p[taskKey(d)]}));
+  const hwDone=hwData.days.filter(d=>completedTasks[taskKey(d.day)]).length;
+  const typeEmoji={study:"🩺",watch:"▶️",quickfire:"⚡",review:"✍️",rest:"😌"};
+
+  const handleSetup=(key,name)=>{
+    S.set("tcm:apikey",key);S.set("tcm:name",name);
+    setApiKey(key);setStudentName(name);setSetup(false);
+  };
+
+  if(setup)return<Setup onComplete={handleSetup}/>;
+  if(quickFire)return(<div style={{minHeight:"100vh",background:"#f5f2ed",display:"flex",flexDirection:"column",maxWidth:860,margin:"0 auto"}}>
+    <div style={{padding:"11px 18px",borderBottom:"1px solid rgba(0,0,0,0.08)",display:"flex",alignItems:"center",justifyContent:"space-between",background:"#fff"}}>
+      <div style={{fontWeight:700,color:"#c4a832",fontSize:"1em"}}>⚡ Quick Fire</div>
+      <button onClick={()=>setQuickFire(false)} style={{background:"transparent",border:"1px solid rgba(0,0,0,0.12)",borderRadius:8,padding:"5px 12px",color:"#8a8580",cursor:"pointer",fontSize:"0.78em",fontFamily:"Georgia,serif"}}>Exit</button>
+    </div>
+    <QuickFire onExit={()=>setQuickFire(false)}/>
+  </div>);
+
+  const tabs=[["today","🏠 Today"],["study","🩺 Study"],["ai","🤖 AI Tutor"],["progress","📊 Progress"],["homework","📋 Homework"],["notes","📝 Notes"],["watch","▶️ Watch"]];
+
+  return(<div style={{minHeight:"100vh",background:"#f5f2ed",display:"flex",flexDirection:"column",maxWidth:860,margin:"0 auto"}}>
+    {/* Header */}
+    <div style={{background:"#fff",borderBottom:"1px solid rgba(0,0,0,0.08)",padding:"11px 18px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:100,boxShadow:"0 2px 8px rgba(0,0,0,0.06)"}}>
+      <div style={{display:"flex",alignItems:"center",gap:10}}>
+        <div style={{width:34,height:34,borderRadius:"50%",background:"linear-gradient(135deg,#2ab5ac,#8b6fd4)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,color:"#fff"}}>☯</div>
+        <div>
+          <div style={{fontSize:"0.95em",fontWeight:700,background:"linear-gradient(90deg,#2ab5ac,#8b6fd4)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>TCM BOARDS TUTOR</div>
+          <div style={{fontSize:"0.6em",color:"#9a9590",letterSpacing:"0.08em"}}>Hi {studentName} · Progress saved ✓</div>
+        </div>
+      </div>
+      <div style={{display:"flex",gap:14,alignItems:"center"}}>
+        {reviewIds.length>0&&<button onClick={()=>{setMode("review");setShowExp(null);setTab("study")}} style={{background:"rgba(232,85,85,0.1)",border:"1px solid rgba(232,85,85,0.3)",borderRadius:8,padding:"4px 10px",color:"#c43333",fontSize:"0.7em",cursor:"pointer",fontFamily:"Georgia,serif"}}>↩ {reviewIds.length}</button>}
+        <div style={{textAlign:"center"}}><div style={{fontSize:"1em",fontWeight:700,color:"#c4a832"}}>{xp}</div><div style={{fontSize:"0.56em",color:"#9a9590",textTransform:"uppercase"}}>XP</div></div>
+        <div style={{textAlign:"center"}}><div style={{fontSize:"1em",fontWeight:700,color:"#e85555"}}>{streak>0?`${streak}🔥`:"-"}</div><div style={{fontSize:"0.56em",color:"#9a9590",textTransform:"uppercase"}}>Streak</div></div>
+      </div>
+    </div>
+    {/* Progress bar */}
+    <div style={{height:4,background:"rgba(0,0,0,0.06)"}}><div style={{height:"100%",width:`${progress}%`,background:"linear-gradient(90deg,#2ab5ac,#8b6fd4)",transition:"width 0.5s",borderRadius:2}}/></div>
+
+    {/* Tab scroll */}
+    <div style={{background:"#fff",borderBottom:"1px solid rgba(0,0,0,0.07)",overflowX:"auto",display:"flex",whiteSpace:"nowrap",WebkitOverflowScrolling:"touch",scrollbarWidth:"none"}}>
+      {tabs.map(([t,label])=>(
+        <button key={t} onClick={()=>setTab(t)} style={{flexShrink:0,padding:"10px 14px",border:"none",cursor:"pointer",background:"transparent",color:tab===t?"#2ab5ac":"#8a8580",borderBottom:tab===t?"2px solid #2ab5ac":"2px solid transparent",fontSize:"0.72em",letterSpacing:"0.06em",textTransform:"uppercase",transition:"all 0.2s",fontFamily:"Georgia,serif"}}>{label}</button>
+      ))}
+    </div>
+
+    <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+
+      {/* ── TODAY ── */}
+      {tab==="today"&&<div style={{flex:1,overflowY:"auto",padding:"16px"}}>
+        {/* Accountability banner */}
+        {lastSeen>2&&<div style={{padding:"12px 16px",borderRadius:12,background:"rgba(232,85,85,0.08)",border:"1px solid rgba(232,85,85,0.25)",marginBottom:14,display:"flex",gap:12,alignItems:"center"}}>
+          <span style={{fontSize:"1.5em"}}>👀</span>
+          <div><div style={{fontWeight:700,color:"#c43333",fontSize:"0.88em"}}>You haven't studied in {lastSeen} days, {studentName}.</div><div style={{fontSize:"0.8em",color:"#c43333",marginTop:2}}>Let's get back on track. Today's tasks are below.</div></div>
+        </div>}
+        {/* Welcome if recent */}
+        {lastSeen<=1&&<div style={{padding:"12px 16px",borderRadius:12,background:"rgba(42,181,172,0.08)",border:"1px solid rgba(42,181,172,0.25)",marginBottom:14,display:"flex",gap:12,alignItems:"center"}}>
+          <span style={{fontSize:"1.5em"}}>👋</span>
+          <div><div style={{fontWeight:700,color:"#1a7a75",fontSize:"0.88em"}}>Good to see you, {studentName}!</div><div style={{fontSize:"0.8em",color:"#1a7a75",marginTop:2}}>You're on Week {currentWeek}: {hwData.title}. Keep going.</div></div>
+        </div>}
+        {/* Quick stats */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:9,marginBottom:16}}>
+          {[["📚",`${answeredIds.size}/${QS.length}`,"Questions done"],["🎯",`${accuracy}%`,"Accuracy"],["📋",`Wk ${currentWeek}`,"Homework"]].map(([e,v,l])=>(
+            <div key={l} style={{padding:"12px 10px",borderRadius:12,background:"#fff",border:"1px solid rgba(0,0,0,0.08)",textAlign:"center",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+              <div style={{fontSize:"1.1em"}}>{e}</div>
+              <div style={{fontWeight:700,color:"#1a1a2e",fontSize:"0.95em",marginTop:2}}>{v}</div>
+              <div style={{fontSize:"0.65em",color:"#9a9590",marginTop:1}}>{l}</div>
+            </div>
+          ))}
+        </div>
+        {/* Today's homework */}
+        <div style={{marginBottom:16}}>
+          <div style={{fontSize:"0.72em",color:"#8a8580",textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:10,fontWeight:700}}>📋 This week's tasks</div>
+          {hwData.days.map(d=>{const done=!!completedTasks[taskKey(d.day)];return(
+            <div key={d.day} onClick={()=>toggleTask(d.day)} style={{marginBottom:8,padding:"11px 13px",borderRadius:11,border:done?`1px solid ${hwData.color}40`:"1px solid rgba(0,0,0,0.08)",background:done?`${hwData.color}0a`:"#fff",cursor:"pointer",display:"flex",gap:12,alignItems:"flex-start",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+              <div style={{width:22,height:22,borderRadius:"50%",border:done?`2px solid ${hwData.color}`:"2px solid rgba(0,0,0,0.15)",background:done?hwData.color:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1,transition:"all 0.2s"}}>
+                {done&&<span style={{fontSize:"0.7em",color:"#fff",fontWeight:700}}>✓</span>}
+              </div>
+              <div style={{flex:1}}>
+                <div style={{display:"flex",gap:7,alignItems:"center",marginBottom:3}}>
+                  <span style={{fontSize:"0.72em",fontWeight:700,color:done?hwData.color:"#8a8580"}}>{d.day}</span>
+                  <span style={{fontSize:"0.75em"}}>{typeEmoji[d.type]}</span>
+                </div>
+                <div style={{fontSize:"0.82em",color:done?"#9a9590":"#2a2a3a",lineHeight:1.6,textDecoration:done?"line-through":"none"}}>{d.task}</div>
+              </div>
+            </div>
+          )})}
+        </div>
+        {/* Weak area */}
+        {weakestTopic&&<div style={{padding:"12px 14px",borderRadius:12,background:"rgba(232,85,85,0.06)",border:"1px solid rgba(232,85,85,0.2)",marginBottom:14}}>
+          <div style={{fontSize:"0.7em",color:"#e85555",textTransform:"uppercase",letterSpacing:"0.12em",fontWeight:700,marginBottom:5}}>⚠️ Needs work</div>
+          <div style={{fontWeight:700,color:"#1a1a2e",fontSize:"0.88em"}}>{weakestTopic[0]}</div>
+          <div style={{fontSize:"0.8em",color:"#7a7570",marginTop:2}}>{Math.round(weakestTopic[1].c/weakestTopic[1].t*100)}% accuracy — filter to this topic in Study and drill it.</div>
+        </div>}
+        {/* Quick fire CTA */}
+        <button onClick={()=>setQuickFire(true)} style={{width:"100%",padding:"13px",borderRadius:12,background:"linear-gradient(135deg,rgba(196,168,50,0.15),rgba(232,85,85,0.1))",border:"1px solid rgba(196,168,50,0.3)",color:"#8a6a00",fontSize:"0.88em",fontWeight:700,cursor:"pointer",fontFamily:"Georgia,serif",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+          ⚡ Quick Fire warm-up — tap to start
+        </button>
+      </div>}
+
+      {/* ── STUDY ── */}
+      {tab==="study"&&<div style={{flex:1,overflowY:"auto",padding:"14px 16px"}}>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:13}}>
+          {["All",...new Set(QS.map(q=>q.topic))].map(f=>{const c=f==="All"?{main:"#5a5550",bg:"rgba(0,0,0,0.04)",border:"rgba(0,0,0,0.15)"}:TC(f);return(
+            <button key={f} onClick={()=>{setFilter(f);setShowExp(null);setShowSimple(false);setShowHint(false);setMode("queue")}} style={{padding:"5px 12px",borderRadius:20,border:filter===f&&mode==="queue"?`1px solid ${c.border}`:"1px solid rgba(0,0,0,0.1)",background:filter===f&&mode==="queue"?c.bg:"transparent",color:filter===f&&mode==="queue"?c.main:"#8a8580",fontSize:"0.72em",cursor:"pointer",transition:"all 0.2s",fontFamily:"Georgia,serif"}}>{f==="All"?"All":f}</button>
+          );})}
+          {mode==="review"&&<span style={{padding:"5px 12px",borderRadius:20,border:"1px solid rgba(232,85,85,0.4)",background:"rgba(232,85,85,0.08)",color:"#c43333",fontSize:"0.72em"}}>↩ Review</span>}
+        </div>
+        {currentQ&&!showExp&&<div>
+          <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:7}}>
+            <span>{TC(currentQ.topic).emoji}</span>
+            <span style={{fontSize:"0.67em",color:TC(currentQ.topic).main,textTransform:"uppercase",letterSpacing:"0.1em",fontWeight:700}}>{currentQ.topic}</span>
+            <span style={{fontSize:"0.67em",color:"#9a9590"}}>› {currentQ.subtopic}</span>
+          </div>
+          <QR q={currentQ} onAnswer={handleAnswer}/>
+          {currentQ.hint&&<div style={{marginTop:9}}>
+            <button onClick={()=>setShowHint(p=>!p)} style={{width:"100%",padding:"9px 14px",borderRadius:10,background:showHint?"rgba(196,168,50,0.1)":"rgba(0,0,0,0.03)",border:showHint?"1px solid rgba(196,168,50,0.3)":"1px solid rgba(0,0,0,0.08)",color:showHint?"#8a6a00":"#8a8580",fontSize:"0.8em",cursor:"pointer",transition:"all 0.2s",textAlign:"left",display:"flex",alignItems:"center",gap:8,fontFamily:"Georgia,serif"}}>
+              <span>💡</span><span>{showHint?"Hide hint":"Need a hint?"}</span>
+            </button>
+            {showHint&&<div style={{marginTop:6,padding:"10px 14px",borderRadius:10,background:"rgba(196,168,50,0.07)",border:"1px solid rgba(196,168,50,0.22)",fontSize:"0.82em",color:"#8a6a00",lineHeight:1.65}}>{currentQ.hint}</div>}
+          </div>}
+        </div>}
+        {showExp&&<div className="fadein">
+          <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:7}}>
+            <span>{TC(showExp.q.topic).emoji}</span>
+            <span style={{fontSize:"0.67em",color:TC(showExp.q.topic).main,textTransform:"uppercase",letterSpacing:"0.1em",fontWeight:700}}>{showExp.q.topic}</span>
+          </div>
+          <div style={{padding:"12px 14px",borderRadius:12,border:showExp.correct?"1px solid rgba(42,181,172,0.35)":"1px solid rgba(232,85,85,0.35)",background:showExp.correct?"rgba(42,181,172,0.07)":"rgba(232,85,85,0.07)",marginBottom:9,boxShadow:"0 2px 8px rgba(0,0,0,0.05)"}}>
+            <div style={{fontWeight:700,fontSize:"0.9em",color:showExp.correct?"#1a7a75":"#c43333",marginBottom:5}}>{showExp.correct?"✓ Correct +20 XP 🎉":"✗ Not this time"}</div>
+            {!showExp.correct&&<div style={{fontSize:"0.8em",color:"#c43333",marginBottom:7}}>You chose: {showExp.chosen}</div>}
+            <div style={{fontSize:"0.84em",color:"#2a2a3a",lineHeight:1.7}}>{showExp.q.explanation}</div>
+          </div>
+          <button onClick={()=>setShowSimple(p=>!p)} style={{width:"100%",padding:"9px 14px",borderRadius:10,background:showSimple?"rgba(139,111,212,0.1)":"rgba(0,0,0,0.03)",border:showSimple?"1px solid rgba(139,111,212,0.3)":"1px solid rgba(0,0,0,0.08)",color:showSimple?"#6b4ec4":"#8a8580",fontSize:"0.8em",cursor:"pointer",marginBottom:8,transition:"all 0.2s",fontFamily:"Georgia,serif"}}>
+            {showSimple?"▲ Hide":"💜 Explain it simpler"}
+          </button>
+          {showSimple&&<div style={{padding:"12px 14px",borderRadius:11,border:"1px solid rgba(139,111,212,0.25)",background:"rgba(139,111,212,0.05)",marginBottom:9}}>
+            <div style={{fontSize:"0.7em",letterSpacing:"0.12em",textTransform:"uppercase",color:"#8b6fd4",marginBottom:7,fontWeight:700}}>💜 PLAIN ENGLISH</div>
+            <div style={{fontSize:"0.85em",color:"#2a2a3a",lineHeight:1.75}}>{showExp.q.simple}</div>
+          </div>}
+          {showExp.q.note&&<div style={{padding:"9px 13px",borderRadius:10,border:"1px solid rgba(196,168,50,0.28)",background:"rgba(196,168,50,0.06)",marginBottom:9,fontSize:"0.8em",color:"#8a6a00",lineHeight:1.6}}>📌 {showExp.q.note}</div>}
+          <button onClick={next} style={{width:"100%",padding:"12px",borderRadius:11,background:"linear-gradient(135deg,rgba(42,181,172,0.12),rgba(139,111,212,0.12))",border:"1px solid rgba(42,181,172,0.25)",color:"#1a7a75",fontSize:"0.9em",cursor:"pointer",fontWeight:700,fontFamily:"Georgia,serif"}}>
+            Next question →
+          </button>
+          <div ref={bottomRef}/>
+        </div>}
+        {!currentQ&&!showExp&&<div style={{textAlign:"center",padding:"40px 16px"}}>
+          <div style={{fontSize:"2.5em",marginBottom:10}}>🎉</div>
+          <div style={{fontWeight:700,fontSize:"1em",color:"#2ab5ac",marginBottom:6}}>{mode==="review"?"Review done!":"Set complete!"}</div>
+          <div style={{color:"#8a8580",fontSize:"0.83em",marginBottom:16}}>XP: {xp}</div>
+          <button onClick={()=>{setAnsweredIds(new Set());setShowExp(null);setShowSimple(false);setShowHint(false);setMode("queue")}} style={{padding:"10px 22px",borderRadius:10,background:"rgba(42,181,172,0.1)",border:"1px solid rgba(42,181,172,0.3)",color:"#1a7a75",fontSize:"0.86em",cursor:"pointer",fontFamily:"Georgia,serif"}}>Start again</button>
+        </div>}
+      </div>}
+
+      {/* ── AI TUTOR ── */}
+      {tab==="ai"&&<div style={{flex:1,display:"flex",flexDirection:"column",height:"calc(100vh - 120px)"}}>
+        <div style={{padding:"10px 16px",background:"rgba(42,181,172,0.06)",borderBottom:"1px solid rgba(42,181,172,0.15)",display:"flex",gap:10,alignItems:"center"}}>
+          <div style={{width:36,height:36,borderRadius:"50%",background:"linear-gradient(135deg,#2ab5ac,#8b6fd4)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,color:"#fff",flexShrink:0}}>☯</div>
+          <div>
+            <div style={{fontWeight:700,fontSize:"0.88em",color:"#1a1a2e"}}>Your AI Tutor</div>
+            <div style={{fontSize:"0.72em",color:"#7a7570"}}>Ask me anything about TCM. I know your progress and your weak spots.</div>
+          </div>
+        </div>
+        <AITutor apiKey={apiKey} name={studentName} qStats={qStats} reviewIds={reviewIds} currentWeek={currentWeek}/>
+      </div>}
+
+      {/* ── PROGRESS ── */}
+      {tab==="progress"&&<div style={{flex:1,overflowY:"auto",padding:"14px 16px"}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9,marginBottom:16}}>
+          {[["Total XP",xp,"#c4a832"],["Accuracy",`${accuracy}%`,"#2ab5ac"],["Questions",Object.keys(qStats).length,"#8b6fd4"],["Streak",streak,"#e85555"]].map(([l,v,c])=>(
+            <div key={l} style={{padding:13,borderRadius:11,border:`1px solid ${c}25`,background:`${c}08`,textAlign:"center",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+              <div style={{fontSize:"1.8em",fontWeight:700,color:c}}>{v}</div>
+              <div style={{fontSize:"0.72em",color:"#8a8580",marginTop:2}}>{l}</div>
+            </div>
+          ))}
+        </div>
+        {weakQs.length>0&&<>
+          <div style={{fontSize:"0.7em",color:"#e85555",textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:10,fontWeight:700}}>⚠️ Needs most work ({weakQs.length} questions)</div>
+          {weakQs.slice(0,5).map(q=>(
+            <div key={q.id} style={{marginBottom:7,padding:"9px 12px",borderRadius:9,border:"1px solid rgba(232,85,85,0.2)",background:"rgba(232,85,85,0.04)",boxShadow:"0 1px 4px rgba(0,0,0,0.04)"}}>
+              <div style={{fontSize:"0.8em",color:"#2a2a3a",marginBottom:3}}>{q.question.slice(0,65)}…</div>
+              <div style={{fontSize:"0.73em",color:"#c43333"}}>✗ {qStats[q.id]?.wrong} wrong · ✓ {qStats[q.id]?.correct} correct</div>
+            </div>
+          ))}
+          <div style={{marginTop:8,marginBottom:16}}/>
+        </>}
+        <div style={{fontSize:"0.7em",color:"#8a8580",textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:10}}>All questions</div>
+        {QS.map(q=>{const s=qStats[q.id];const tc=TC(q.topic);return(
+          <div key={q.id} style={{marginBottom:5,padding:"8px 11px",borderRadius:9,border:`1px solid ${tc.main}18`,background:`${tc.main}06`,display:"flex",alignItems:"center",gap:8}}>
+            <span style={{fontSize:"0.85em"}}>{tc.emoji}</span>
+            <div style={{flex:1,fontSize:"0.77em",color:"#5a5550",lineHeight:1.4}}>{q.question.slice(0,50)}…</div>
+            {s?<div style={{display:"flex",gap:7,flexShrink:0}}>
+              <span style={{fontSize:"0.73em",color:"#1a7a75",fontWeight:700}}>✓{s.correct}</span>
+              <span style={{fontSize:"0.73em",color:"#c43333",fontWeight:700}}>✗{s.wrong}</span>
+            </div>:<span style={{fontSize:"0.7em",color:"#c4c0bc"}}>not seen</span>}
+          </div>
+        );})}
+      </div>}
+
+      {/* ── HOMEWORK ── */}
+      {tab==="homework"&&<div style={{flex:1,overflowY:"auto",padding:"14px 16px"}}>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
+          {HW.map(h=><button key={h.week} onClick={()=>setCurrentWeek(h.week)} style={{padding:"5px 11px",borderRadius:20,border:currentWeek===h.week?`1px solid ${h.color}`:"1px solid rgba(0,0,0,0.1)",background:currentWeek===h.week?`${h.color}12`:"transparent",color:currentWeek===h.week?h.color:"#8a8580",fontSize:"0.72em",cursor:"pointer",transition:"all 0.2s",fontFamily:"Georgia,serif"}}>{h.emoji} Wk {h.week}</button>)}
+        </div>
+        <div style={{padding:"14px 16px",borderRadius:14,background:`${hwData.color}08`,border:`1px solid ${hwData.color}28`,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,0.05)"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+            <div>
+              <div style={{fontSize:"0.68em",color:hwData.color,textTransform:"uppercase",letterSpacing:"0.12em",fontWeight:700,marginBottom:3}}>WEEK {hwData.week}</div>
+              <div style={{fontSize:"1em",fontWeight:700,color:"#1a1a2e"}}>{hwData.emoji} {hwData.title}</div>
+            </div>
+            <div style={{textAlign:"center",flexShrink:0}}>
+              <div style={{fontSize:"1.4em",fontWeight:700,color:hwData.color}}>{Math.round(hwDone/hwData.days.length*100)}%</div>
+              <div style={{fontSize:"0.62em",color:"#9a9590"}}>done</div>
+            </div>
+          </div>
+          <div style={{fontSize:"0.82em",color:"#5a5550",lineHeight:1.6,marginBottom:10}}>{hwData.focus}</div>
+          <div style={{height:5,borderRadius:3,background:"rgba(0,0,0,0.08)"}}><div style={{height:"100%",width:`${Math.round(hwDone/hwData.days.length*100)}%`,background:hwData.color,borderRadius:3,transition:"width 0.4s"}}/></div>
+        </div>
+        {hwData.days.map(d=>{const done=!!completedTasks[taskKey(d.day)];return(
+          <div key={d.day} onClick={()=>toggleTask(d.day)} style={{marginBottom:8,padding:"11px 13px",borderRadius:11,border:done?`1px solid ${hwData.color}35`:"1px solid rgba(0,0,0,0.08)",background:done?`${hwData.color}07`:"#fff",cursor:"pointer",display:"flex",gap:12,alignItems:"flex-start",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+            <div style={{width:22,height:22,borderRadius:"50%",border:done?`2px solid ${hwData.color}`:"2px solid rgba(0,0,0,0.15)",background:done?hwData.color:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1,transition:"all 0.2s"}}>
+              {done&&<span style={{fontSize:"0.7em",color:"#fff",fontWeight:700}}>✓</span>}
+            </div>
+            <div style={{flex:1}}>
+              <div style={{display:"flex",gap:7,alignItems:"center",marginBottom:3}}>
+                <span style={{fontSize:"0.72em",fontWeight:700,color:done?hwData.color:"#8a8580"}}>{d.day}</span>
+                <span style={{fontSize:"0.75em"}}>{typeEmoji[d.type]}</span>
+              </div>
+              <div style={{fontSize:"0.82em",color:done?"#9a9590":"#2a2a3a",lineHeight:1.6,textDecoration:done?"line-through":"none"}}>{d.task}</div>
+            </div>
+          </div>
+        )})}
+        <div style={{marginTop:14,padding:"12px 14px",borderRadius:12,border:"1px solid rgba(196,168,50,0.25)",background:"rgba(196,168,50,0.05)",marginBottom:9}}>
+          <div style={{fontSize:"0.7em",color:"#8a6a00",textTransform:"uppercase",letterSpacing:"0.12em",fontWeight:700,marginBottom:6}}>✅ End-of-week checkpoint</div>
+          <div style={{fontSize:"0.83em",color:"#3a3530",lineHeight:1.7}}>{hwData.checkpoint}</div>
+        </div>
+        <div style={{padding:"11px 14px",borderRadius:12,border:"1px solid rgba(232,85,85,0.22)",background:"rgba(232,85,85,0.04)",marginBottom:16}}>
+          <div style={{fontSize:"0.7em",color:"#c43333",textTransform:"uppercase",letterSpacing:"0.12em",fontWeight:700,marginBottom:6}}>⚠️ Board alert</div>
+          <div style={{fontSize:"0.83em",color:"#3a3530",lineHeight:1.7}}>{hwData.boardAlert}</div>
+        </div>
+        <div style={{display:"flex",gap:9}}>
+          {currentWeek>1&&<button onClick={()=>setCurrentWeek(p=>p-1)} style={{flex:1,padding:10,borderRadius:10,background:"rgba(0,0,0,0.04)",border:"1px solid rgba(0,0,0,0.1)",color:"#8a8580",fontSize:"0.82em",cursor:"pointer",fontFamily:"Georgia,serif"}}>← Week {currentWeek-1}</button>}
+          {currentWeek<HW.length&&<button onClick={()=>setCurrentWeek(p=>p+1)} style={{flex:1,padding:10,borderRadius:10,background:`${hwData.color}10`,border:`1px solid ${hwData.color}28`,color:hwData.color,fontSize:"0.82em",cursor:"pointer",fontWeight:700,fontFamily:"Georgia,serif"}}>Week {currentWeek+1} →</button>}
+        </div>
+      </div>}
+
+      {/* ── NOTES ── */}
+      {tab==="notes"&&<div style={{flex:1,overflowY:"auto",padding:"14px 16px"}}>
+        <div style={{marginBottom:16,padding:"12px 14px",borderRadius:12,border:"1px solid rgba(42,181,172,0.25)",background:"rgba(42,181,172,0.04)",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+          <div style={{fontSize:"0.7em",color:"#2ab5ac",textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:8,fontWeight:700}}>+ Add a note</div>
+          <div style={{display:"flex",gap:8,marginBottom:6}}>
+            <select value={noteTopic} onChange={e=>setNoteTopic(e.target.value)} style={{background:"#fff",border:"1px solid rgba(0,0,0,0.12)",borderRadius:8,padding:"6px 10px",color:"#2ab5ac",fontSize:"0.78em",outline:"none",cursor:"pointer",fontFamily:"Georgia,serif"}}>
+              <option>General</option>{[...new Set(QS.map(q=>q.topic))].map(t=><option key={t}>{t}</option>)}
+            </select>
+          </div>
+          <textarea value={noteText} onChange={e=>setNoteText(e.target.value)} placeholder="Write a note, mnemonic, or thing to remember..." rows={3} style={{width:"100%",background:"#fff",border:"1px solid rgba(0,0,0,0.1)",borderRadius:9,padding:"9px 12px",color:"#1a1a2e",fontSize:"0.84em",outline:"none",resize:"none",lineHeight:1.6,fontFamily:"Georgia,serif"}}/>
+          <button onClick={addNote} disabled={!noteText.trim()} style={{marginTop:7,padding:"7px 18px",borderRadius:8,background:"rgba(42,181,172,0.12)",border:"1px solid rgba(42,181,172,0.28)",color:"#1a7a75",fontSize:"0.8em",cursor:"pointer",fontFamily:"Georgia,serif"}}>Save →</button>
+        </div>
+        {/* Core reference notes */}
+        {[
+          {topic:"🌊 Yin def vs Blood def",color:"#2ab5ac",points:["Blood def: pale, dry, NO heat signs, thin pulse","Yin def: Blood def + EMPTY HEAT — thin AND rapid pulse","Key: is there heat? Yes → Yin def","Heat signs: night sweats · five palm heat · malar flush · afternoon fever"]},
+          {topic:"⚡ 5 Functions of Qi",color:"#2ab5ac",points:["🔄 Transform — food into Blood and Qi","🚀 Transport — move Blood and fluids","📌 Hold — keep organs in position","⬆️ Raise — prevent prolapse","🛡 Warm and Protect — temperature + defence"]},
+          {topic:"🫘 Kidney Yin vs Yang",color:"#8b6fd4",points:["Yin def: night sweats, five palm heat, scanty DARK urine, thin rapid pulse, red tongue no coat","Yang def: nocturia (clear urine), cold lower back/limbs, pale moist tongue, deep slow pulse","Both: tinnitus, low back ache, poor memory, weak knees"]},
+          {topic:"🫀 Heart patterns",color:"#e85555",points:["Qi def: mild palpitations, weak pulse, fatigue","Blood def: pale tongue, thin pulse, insomnia — no heat","Yang def: cold limbs, purple lips, knotted pulse","Fire: red tongue TIP, rapid FULL pulse, mouth sores — excess heat"]},
+          {topic:"🌿 Liver patterns",color:"#e85555",points:["Qi stag: distending pain, irritability, sighing, irregular periods","Blood def: dry eyes, pale nails, blurred vision, scanty periods","Yang rising: headache, dizziness, red face, stiff neck","Fire: severe headache, red eyes, bitter taste"]},
+        ].map((s,i)=>(
+          <div key={i} style={{marginBottom:11,border:`1px solid ${s.color}22`,borderRadius:11,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+            <div style={{padding:"9px 14px",background:`${s.color}10`,borderBottom:`1px solid ${s.color}18`,fontWeight:700,fontSize:"0.8em",color:s.color}}>{s.topic}</div>
+            <div style={{padding:"10px 14px",background:"#fff",display:"flex",flexDirection:"column",gap:5}}>
+              {s.points.map((p,j)=><div key={j} style={{fontSize:"0.81em",lineHeight:1.6,color:"#3a3530"}}>{p}</div>)}
+            </div>
+          </div>
+        ))}
+        {/* Custom notes */}
+        {customNotes.length>0&&<>
+          <div style={{fontSize:"0.7em",color:"#c4a832",textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:10,marginTop:8,fontWeight:700}}>📝 Your notes</div>
+          {[...customNotes].reverse().map(n=>(
+            <div key={n.id} style={{marginBottom:8,padding:"10px 13px",borderRadius:10,border:"1px solid rgba(196,168,50,0.2)",background:"rgba(196,168,50,0.04)",boxShadow:"0 1px 4px rgba(0,0,0,0.04)"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
+                <div><span style={{fontSize:"0.68em",color:"#8a6a00",fontWeight:700,marginRight:8}}>{n.topic}</span><span style={{fontSize:"0.65em",color:"#9a9590"}}>{n.date}</span></div>
+                <button onClick={()=>setCustomNotes(p=>p.filter(x=>x.id!==n.id))} style={{background:"transparent",border:"none",color:"#c4c0bc",cursor:"pointer",fontSize:"0.85em",padding:0}}>✕</button>
+              </div>
+              <div style={{fontSize:"0.83em",color:"#2a2a3a",lineHeight:1.65,marginTop:5}}>{n.text}</div>
+            </div>
+          ))}
+        </>}
+      </div>}
+
+      {/* ── WATCH ── */}
+      {tab==="watch"&&<div style={{flex:1,overflowY:"auto",padding:"14px 16px"}}>
+        <div style={{fontSize:"0.78em",color:"#7a7570",lineHeight:1.6,marginBottom:14}}>Tap a link to open YouTube with that search. Aim for videos under 15 minutes.</div>
+        {RES.map((section,i)=>(
+          <div key={i} style={{marginBottom:11,border:`1px solid ${section.color}22`,borderRadius:12,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+            <div onClick={()=>setResOpen(resOpen===i?null:i)} style={{padding:"11px 14px",background:`${section.color}0c`,borderBottom:resOpen===i?`1px solid ${section.color}20`:"none",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{fontWeight:700,fontSize:"0.85em",color:section.color}}>{section.topic}</div>
+              <div style={{color:section.color,fontSize:"0.85em"}}>{resOpen===i?"▲":"▼"}</div>
+            </div>
+            {resOpen===i&&<div style={{padding:"10px 14px",background:"#fff",display:"flex",flexDirection:"column",gap:10}}>
+              {section.items.map((item,j)=>(
+                <div key={j} style={{padding:"10px 12px",borderRadius:10,background:"#fafaf8",border:"1px solid rgba(0,0,0,0.07)"}}>
+                  <div style={{fontWeight:700,fontSize:"0.82em",color:section.color,marginBottom:4}}>{item.label}</div>
+                  <div style={{fontSize:"0.78em",color:"#7a7570",marginBottom:8,lineHeight:1.5}}>{item.why}</div>
+                  <a href={`https://www.youtube.com/results?search_query=${encodeURIComponent(item.query)}`} target="_blank" rel="noopener noreferrer" style={{display:"block",padding:"8px 12px",borderRadius:8,background:`${section.color}10`,border:`1px solid ${section.color}28`,fontSize:"0.8em",color:section.color,fontWeight:700}}>
+                    🎬 Open YouTube search →
+                    <div style={{fontSize:"0.85em",color:`${section.color}88`,marginTop:2,fontWeight:400,fontFamily:"monospace"}}>{item.query}</div>
+                  </a>
+                </div>
+              ))}
+            </div>}
+          </div>
+        ))}
+      </div>}
+
+    </div>
+  </div>);
+}
+
+const root=ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App/>);
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════
+     ONESIGNAL PUSH NOTIFICATIONS SETUP (optional)
+     ═══════════════════════════════════════════════════════════
+     1. Go to onesignal.com → create free account
+     2. Create a new app → Web → choose "Typical Site"
+     3. Enter your GitHub Pages URL (yourusername.github.io/tcm-tutor)
+     4. Copy your App ID
+     5. Uncomment the OneSignal script tag at the top of this file
+     6. Replace YOUR_ONESIGNAL_APP_ID below with your actual App ID
+     7. Push the updated file to GitHub
+     ─────────────────────────────────────────────────────────── -->
+<script>
+// window.OneSignalDeferred = window.OneSignalDeferred || [];
+// OneSignalDeferred.push(async function(OneSignal) {
+//   await OneSignal.init({ appId: "YOUR_ONESIGNAL_APP_ID" });
+// });
+</script>
+</body>
+</html>
